@@ -1,0 +1,19 @@
+name: Deploy to QA
+
+on:
+  push:
+    branches: [ qa ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Deploy to QA Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.QA_HOST }}
+          username: ${{ secrets.QA_USERNAME }}
+          key: ${{ secrets.QA_SSH_KEY }}
+          script: echo "Deploying to QA..." # Add your real deployment script here
