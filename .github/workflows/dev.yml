@@ -1,0 +1,37 @@
+# Name of your workflow
+name: .NET Build and Test
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "main" ] # Runs on pushes to the main branch
+  pull_request:
+    branches: [ "main" ] # Runs on pull requests targeting the main branch
+
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checks out your repository's code so your workflow can access it
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. Sets up the specified .NET version
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0' # Specify your target .NET version here
+
+    # 3. Restores all NuGet package dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # 4. Builds the project in Release configuration
+    - name: Build
+      run: dotnet build Norwind.Api\Norwind.Api.csproj --no-restore --configuration Release
+
+    # 5. Runs all tests found in the project
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
