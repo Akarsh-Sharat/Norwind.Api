@@ -11,13 +11,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # Specify your .NET version
+          dotnet-version: '8.0.x'
 
       - name: Publish application
-        run: dotnet publish YourProjectName.csproj -c Release -o ./publish # Change YourProjectName
+        run: dotnet publish Norwind.Api.csproj -c Release -o ./publish
 
       - name: Deploy to UAT Server
         uses: appleboy/ssh-action@master
@@ -26,7 +26,7 @@ jobs:
           username: ${{ secrets.UAT_USERNAME }}
           key: ${{ secrets.UAT_SSH_KEY }}
           source: "./publish/*"
-          target: "/var/www/uat-app" # Target directory for UAT
+          target: "/var/www/uat-app"
           script: |
             echo "Deployment to UAT successful. Restarting service..."
-            sudo systemctl restart your-uat-app-service # Your UAT service name
+            sudo systemctl restart your-uat-app-service # <-- REPLACE with your actual UAT service name
