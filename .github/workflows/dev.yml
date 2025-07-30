@@ -1,37 +1,105 @@
-# Name of your workflow
-name: .NET Build and Test
+name: .NET Multi-Environment Deploy
 
-# Controls when the workflow will run
 on:
+  # Trigger the workflow on pushes (merges) to these environment branches
   push:
-    branches: [ "main" ] # Runs on pushes to the main branch
+    branches: [ "qa", "uat", "main" ]
+  # Also trigger on pull requests to run tests before merging
   pull_request:
-    branches: [ "main" ] # Runs on pull requests targeting the main branch
+    branches: [ "qa", "uat", "main" ]
 
 jobs:
-  build:
-    # The type of runner that the job will run on
+  # =================================================================
+  #  BUILD AND TEST JOB - Runs for every trigger
+  # =================================================================
+  build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    # 1. Checks out your repository's code so your workflow can access it
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # 2. Sets up the specified .NET version
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0' # Specify your target .NET version here
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
-    # 3. Restores all NuGet package dependencies
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Restore, Build, and Test
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+          dotnet test --no-build --verbosity normal
+      
+      - name: Publish API
+        run: dotnet publish --configuration Release --output ./publish
+        
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish
+          path: ./publish
 
-    # 4. Builds the project in Release configuration
-    - name: Build
-      run: dotnet build Norwind.Api\Norwind.Api.csproj --no-restore --configuration Release
+  # =================================================================
+  #  DEPLOY TO QA - Runs only on push to 'qa' branch
+  # =================================================================
+  deploy-to-qa:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/qa' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: 
+      name: QA
+      url: ${{ secrets.QA_URL }} # Optional: Add your QA site URL as a secret
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+      - name: Deploy to QA Server
+        run: echo "Deploying to QA..."
+        # Example: uses: azure/webapps-deploy@v2
+        # with:
+        #   app-name: 'your-qa-app-name'
+        #   publish-profile: ${{ secrets.AZURE_QA_PUBLISH_PROFILE }}
 
-    # 5. Runs all tests found in the project
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+  # =================================================================
+  #  DEPLOY TO UAT - Runs only on push to 'uat' branch
+  # =================================================================
+  deploy-to-uat:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/uat' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: 
+      name: UAT
+      url: ${{ secrets.UAT_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+      - name: Deploy to UAT Server
+        run: echo "Deploying to UAT..."
+        # Example: uses: azure/webapps-deploy@v2
+        # with:
+        #   app-name: 'your-uat-app-name'
+        #   publish-profile: ${{ secrets.AZURE_UAT_PUBLISH_PROFILE }}
+
+  # =================================================================
+  #  DEPLOY TO PRODUCTION - Runs only on push to 'main' branch
+  # =================================================================
+  deploy-to-prod:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: ${{ secrets.PROD_URL }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+      - name: Deploy to Production Server
+        run: echo "Deploying to Production..."
+        # Example: uses: azure/webapps-deploy@v2
+        # with:
+        #   app-name: 'your-prod-app-name'
+        #   publish-profile: ${{ secrets.AZURE_PROD_PUBLISH_PROFILE }}
