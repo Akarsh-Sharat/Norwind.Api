@@ -10,10 +10,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish application
+        run: dotnet publish Norwind.Api.csproj -c Release -o ./publish
+
       - name: Deploy to QA Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.QA_HOST }}
           username: ${{ secrets.QA_USERNAME }}
           key: ${{ secrets.QA_SSH_KEY }}
-          script: echo "Deploying to QA..." # Add your real deployment script here
+          source: "./publish/*"
+          target: "/var/www/qa-app"
+          script: |
+            echo "Deployment to QA successful. Restarting service..."
+            sudo systemctl restart your-qa-app-service # <-- REPLACE with your actual QA service name
