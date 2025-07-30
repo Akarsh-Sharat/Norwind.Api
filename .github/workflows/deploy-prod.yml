@@ -11,13 +11,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # Specify your .NET version
+          dotnet-version: '8.0.x'
 
       - name: Publish application
-        run: dotnet publish YourProjectName.csproj -c Release -o ./publish # Change YourProjectName
+        run: dotnet publish Norwind.Api.csproj -c Release -o ./publish
 
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@master
@@ -26,7 +26,7 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           source: "./publish/*"
-          target: "/var/www/prod-app" # Target directory for Production
+          target: "/var/www/prod-app"
           script: |
             echo "Deployment to PRODUCTION successful. Restarting service..."
-            sudo systemctl restart your-prod-app-service # Your Production service name
+            sudo systemctl restart your-prod-app-service # <-- REPLACE with your actual Production service name
