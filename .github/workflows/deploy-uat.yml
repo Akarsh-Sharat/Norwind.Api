@@ -1,0 +1,32 @@
+name: Deploy to UAT
+
+on:
+  push:
+    branches: [ uat ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # Specify your .NET version
+
+      - name: Publish application
+        run: dotnet publish YourProjectName.csproj -c Release -o ./publish # Change YourProjectName
+
+      - name: Deploy to UAT Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.UAT_HOST }}
+          username: ${{ secrets.UAT_USERNAME }}
+          key: ${{ secrets.UAT_SSH_KEY }}
+          source: "./publish/*"
+          target: "/var/www/uat-app" # Target directory for UAT
+          script: |
+            echo "Deployment to UAT successful. Restarting service..."
+            sudo systemctl restart your-uat-app-service # Your UAT service name
